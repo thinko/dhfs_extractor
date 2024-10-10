@@ -1,5 +1,5 @@
 # dhfs_extractor
-An small utility to extract videos, logs, and slacks in the DHFS4.1 file system.
+A small utility to extract videos, logs, and slacks in the DHFS4.1 file system.
 
 This program can identify and recover videos stored in a DHFS4.1 file system (commonly found in Chinese DVRs).
 
