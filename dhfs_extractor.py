@@ -8,7 +8,7 @@ in a DHFS4.1 filesystem (common in chinese's DVR). \n\n\
 When running under Windows, use 'Open Image' to get data\n\
 source. In Linux you can access evidence disks or images\n\
 using their names in file system. \n\n\
-DHFS4.1 extractor is offered to you under GPL license\n\
+DHFS4.1 extractor is offered to you under MIT license\n\
 by GALILEU Batista (galileu.batista@ifrn.edu.br)\n\
 You must retain author name in all circunstances in which\n\
 the program is used. He has made the best to get \n\
@@ -99,17 +99,10 @@ class DVRExtractor (wx.Frame):
                                     style=wx.LB_SINGLE)
         self.Bind(wx.EVT_LISTBOX, self.filterVideosInfo, self.lbCams)
 
-
         self.Show(True)
         time.sleep(1)
         self.showAbout()
 
-        #fileName = r"Y:\IPL2024.0011881-DPF_MOS_RN\M0353_24\IPL2024.0011881-TA1233949_24-I01-M353_24.dd"
-        #fileName = r"Y:\IPL2024.0011881-DPF_MOS_RN\M0354_24\IPL2024.0011881-TA1233949_24-I02-M354_24.dd"
-        #self.SetTitle(version + " - " + fileName)
-
-        #if self.dhfs.loadImage(fileName):
-        #    self.showVideosInfo()
 
     def toolBarEvent(self, e):
         if e.GetId() == 101:
