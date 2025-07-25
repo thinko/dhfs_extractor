@@ -26,7 +26,7 @@ class DVRExtractor (wx.Frame):
         super(DVRExtractor, self).__init__(*args, **kwargs)
         self.SetSize(840,530)
         self.dhfs = DHFS41(DEBUG=DEBUG)
-        self.createGUI()
+        self.create_gui()
 
     def resource_path(self, relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -37,7 +37,7 @@ class DVRExtractor (wx.Frame):
             base_path = os.path.abspath(".")
         return os.path.join(base_path, relative_path)
 
-    def createGUI(self):
+    def create_gui(self):
         self.CreateStatusBar()
 
         splitter = wx.SplitterWindow(self, style=wx.SP_NOSASH)
@@ -77,13 +77,13 @@ class DVRExtractor (wx.Frame):
         self.SetTitle(version)
         self.Centre()
 
-        self.lbVideos = wx.ListCtrl(self.painel, -1, pos=(0, 0),
+        self.lb_videos = wx.ListCtrl(self.painel, -1, pos=(0, 0),
                                     size=(585, 400),
                                     style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.lbVidHeaders = ["PART", "ID", "DATA", "BEGIN", "END", "CAMERA", "SIZE"]
-        self.lbVideos.SetBackgroundColour(wx.WHITE)
-        for i in range(len(self.lbVidHeaders)):
-            self.lbVideos.InsertColumn(i+1, self.lbVidHeaders[i],
+        self.lb_videos_headers = ["PART", "ID", "DATA", "BEGIN", "END", "CAMERA", "SIZE"]
+        self.lb_videos.SetBackgroundColour(wx.WHITE)
+        for i in range(len(self.lb_videos_headers)):
+            self.lb_videos.InsertColumn(i+1, self.lb_videos_headers[i],
                                             wx.LIST_FORMAT_CENTER,
                                             width=wx.LIST_AUTOSIZE)
 
@@ -91,54 +91,54 @@ class DVRExtractor (wx.Frame):
         wx.StaticText(self.painel1, label="Camera", pos=(125, 10))
 
         # ListBoxes para selecionar datas e câmeras
-        self.lbDates = wx.ListBox(self.painel1, pos=(10, 30), size=(100, 370),
+        self.lb_dates = wx.ListBox(self.painel1, pos=(10, 30), size=(100, 370),
                                     style=wx.LB_SINGLE)
-        self.Bind(wx.EVT_LISTBOX, self.filterVideosInfo, self.lbDates)
+        self.Bind(wx.EVT_LISTBOX, self.filter_videos, self.lb_dates)
 
-        self.lbCams = wx.ListBox(self.painel1, pos=(120, 30), size=(70, 370),
+        self.lb_cameras = wx.ListBox(self.painel1, pos=(120, 30), size=(70, 370),
                                     style=wx.LB_SINGLE)
-        self.Bind(wx.EVT_LISTBOX, self.filterVideosInfo, self.lbCams)
+        self.Bind(wx.EVT_LISTBOX, self.filter_videos, self.lb_cameras)
 
         self.Show(True)
         time.sleep(1)
-        self.showAbout()
+        self.show_about()
 
 
     def toolBarEvent(self, e):
         if e.GetId() == 101:
-            self.loadImage()
+            self.load_image()
         elif e.GetId() == 102:
-            self.loadDisk()
+            self.load_disk()
         elif e.GetId() == 103:
-            self.showMetadata()
+            self.show_metadata()
         elif e.GetId() == 104:
-            self.saveVideos()
+            self.save_videos()
         elif e.GetId() == 105:
-            self.exportVideosMetaData()
+            self.export_videos_metadata()
         elif e.GetId() == 106:
-            self.saveSlacks()
+            self.save_slacks()
         elif e.GetId() == 107:
-            self.saveRecovered()
+            self.save_recovered()
         elif e.GetId() == 108:
-            self.saveLogs()
+            self.save_logs()
         elif e.GetId() == 109:
             self.config()
         elif e.GetId() == 110:
-            self.showAbout()
+            self.show_about()
         elif e.GetId() == 111:
-            self.Close()
+            self.close()
 
-    def clearGUI(self):
-        self.lbDates.Clear()
-        self.lbCams.Clear()
-        self.lbVideos.DeleteAllItems()
+    def clear_gui(self):
+        self.lb_dates.Clear()
+        self.lb_cameras.Clear()
+        self.lb_videos.DeleteAllItems()
         self.SetStatusText("")
 
-    def loadDisk(self):
-        self.loadImage()
+    def load_disk(self):
+        self.load_image()
 
-    def loadImage(self):
-        self.clearGUI()
+    def load_image(self):
+        self.clear_gui()
 
         self.dlg = wx.FileDialog(self, "Escolha um arquivo", os.getcwd(), "")
         if self.dlg.ShowModal() == wx.ID_OK:
@@ -152,172 +152,172 @@ class DVRExtractor (wx.Frame):
                 wx.MessageBox("This is not a DHFS4.1 filesystem!!!", version,
                                 style=wx.OK | wx.ICON_INFORMATION)
 
-    def showAbout(self):
+    def show_about(self):
         wx.MessageBox(copyright, "About", style=wx.OK)
 
-    def showMetadata(self):
-        message = self.dhfs.getImageMetaData()
+    def show_metadata(self):
+        message = self.dhfs.get_image_metadata()
         if message:
             wx.MessageBox(message, "DHFS4.1 Metadata", style=wx.OK)
         else:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
 
     def showVideosInfo(self):
-        allVideoDates  = []
-        allCameras     = []
-        for pIndx in range(self.dhfs.getNumPartitions()):
-            for dIndx in self.dhfs.getMainDescs(pIndx):
-                videoDate = self.dhfs.getBeginDate(pIndx, dIndx)
-                if not videoDate in allVideoDates:
-                    allVideoDates.append(videoDate)
+        all_video_dates  = []
+        all_cameras      = []
+        for p_idx in range(self.dhfs.get_num_partitions()):
+            for d_idx in self.dhfs.get_main_descs(p_idx):
+                video_date = self.dhfs.get_begin_date(p_idx, d_idx)
+                if not video_date in all_video_dates:
+                    all_video_dates.append(video_date)
 
-                camera = f"{self.dhfs.getCamera(pIndx, dIndx):02d}"
-                if not camera in allCameras:
-                    allCameras.append(camera)
+                camera = f"{self.dhfs.get_camera(p_idx, d_idx):02d}"
+                if not camera in all_cameras:
+                    all_cameras.append(camera)
 
-        allVideoDates.sort()
-        allVideoDates.insert(0, "All")
-        allCameras.sort()
-        allCameras.insert(0, "All")
+        all_video_dates.sort()
+        all_video_dates.insert(0, "All")
+        all_cameras.sort()
+        all_cameras.insert(0, "All")
 
-        self.lbDates.InsertItems(allVideoDates, 0)
-        self.lbDates.SetSelection(0)
+        self.lb_dates.InsertItems(all_video_dates, 0)
+        self.lb_dates.SetSelection(0)
 
-        self.lbCams.InsertItems(allCameras, 0)
-        self.lbCams.SetSelection(0)
+        self.lb_cameras.InsertItems(all_cameras, 0)
+        self.lb_cameras.SetSelection(0)
 
-        self.filterVideosInfo(None)
+        self.filter_videos(None)
 
-    def filterVideosInfo(self, evt):
-        self.lbVideos.DeleteAllItems()
+    def filter_videos(self, evt):
+        self.lb_videos.DeleteAllItems()
 
-        scanned = 0
-        id = 0
-        numVid = sum(len(videos) for videos in self.dhfs.fragsInVideos)
-        for pIndx in range(self.dhfs.getNumPartitions()):
-            for dIndx in self.dhfs.getMainDescs(pIndx):
-                date  = self.dhfs.getBeginDate(pIndx, dIndx)
-                begin = self.dhfs.getBeginTime(pIndx, dIndx)
-                end   = self.dhfs.getEndTime(pIndx, dIndx)
-                cam   = f"{self.dhfs.getCamera(pIndx, dIndx):02d}"
-                size  = f"{self.dhfs.getVideoSize(pIndx, dIndx)/1024**2:.2f} MB"
+        vid_scanned = 0
+        video_idx = 0
+        tot_videos = sum(len(videos) for videos in self.dhfs.frags_in_videos)
+        for part_idx in range(self.dhfs.get_num_partitions()):
+            for desc_idx in self.dhfs.get_main_descs(part_idx):
+                date  = self.dhfs.get_begin_date(part_idx, desc_idx)
+                begin = self.dhfs.get_begin_time(part_idx, desc_idx)
+                end   = self.dhfs.get_end_time(part_idx, desc_idx)
+                cam   = f"{self.dhfs.get_camera(part_idx, desc_idx):02d}"
+                size  = f"{self.dhfs.get_video_size(part_idx, desc_idx)/1024**2:.2f} MB"
 
-                selectedDate = self.lbDates.GetStringSelection()
-                selectedCam = self.lbCams.GetStringSelection()
+                selectedDate = self.lb_dates.GetStringSelection()
+                selectedCam = self.lb_cameras.GetStringSelection()
 
                 if (((selectedDate == "All") or (selectedDate == date)) and
                     ((selectedCam == "All") or (selectedCam == cam))):
-                    self.lbVideos.InsertItem(id, str(pIndx))
-                    self.lbVideos.SetItem(id, 1, str(dIndx))
-                    self.lbVideos.SetItem(id, 2, date)
-                    self.lbVideos.SetItem(id, 3, begin)
-                    self.lbVideos.SetItem(id, 4, end)
-                    self.lbVideos.SetItem(id, 5, cam)
-                    self.lbVideos.SetItem(id, 6, size)
-                    id += 1
+                    self.lb_videos.InsertItem(video_idx, str(part_idx))
+                    self.lb_videos.SetItem(video_idx, 1, str(desc_idx))
+                    self.lb_videos.SetItem(video_idx, 2, date)
+                    self.lb_videos.SetItem(video_idx, 3, begin)
+                    self.lb_videos.SetItem(video_idx, 4, end)
+                    self.lb_videos.SetItem(video_idx, 5, cam)
+                    self.lb_videos.SetItem(video_idx, 6, size)
+                    video_idx += 1
 
-                scanned += 1
-                if scanned % 50 == 0:
-                    self.SetStatusText("Listing Videos... {0:.2f}%".format((scanned/numVid) * 100))
+                vid_scanned += 1
+                if vid_scanned % 50 == 0:
+                    self.SetStatusText("Listing Videos... {0:.2f}%".format((vid_scanned/tot_videos) * 100))
 
         self.SetStatusText("Done!!!!!!!!!")
 
-    def getSavePath(self):
+    def get_save_path(self):
         self.dlg = wx.DirDialog(self, "Choose a dir to save...", os.getcwd(),
                         wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
         return self.dlg.GetPath() if self.dlg.ShowModal() == wx.ID_OK else None
 
-    def saveVideos(self):
-        if not self.dhfs.imgLoaded:
+    def save_videos(self):
+        if not self.dhfs.img_loaded:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
             return
 
-        dirToSave = self.getSavePath()
-        if dirToSave:
-            nVideos = 0
-            for lbVideoIdx in range(self.lbVideos.GetItemCount()):
-                if self.lbVideos.IsSelected(lbVideoIdx):
-                    pIndx = int(self.lbVideos.GetItemText(lbVideoIdx, 0))
-                    vIndx = int(self.lbVideos.GetItemText(lbVideoIdx, 1))
-                    self.dhfs.saveVideoAt(pIndx, vIndx, dirToSave, self.SetStatusText)
-                    nVideos += 1
+        dir_save = self.get_save_path()
+        if dir_save:
+            tot_videos = 0
+            for lb_video_idx in range(self.lb_videos.GetItemCount()):
+                if self.lb_videos.IsSelected(lb_video_idx):
+                    part_idx = int(self.lb_videos.GetItemText(lb_video_idx, 0))
+                    vid_idx = int(self.lb_videos.GetItemText(lb_video_idx, 1))
+                    self.dhfs.save_video_at(part_idx, vid_idx, dir_save, self.SetStatusText)
+                    tot_videos += 1
             self.SetStatusText(f"Done!!!")
 
-            if nVideos == 0:
+            if tot_videos == 0:
                 wx.MessageBox("Choose one or more videos!!!", version,
                                     style=wx.OK | wx.ICON_INFORMATION)
 
-    def exportVideosMetaData(self):
-        if not self.dhfs.imgLoaded:
+    def export_videos_metadata(self):
+        if not self.dhfs.img_loaded:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
             return
 
-        fileDialog = wx.FileDialog(self, "Save Videos Metadata file",
+        file_dialog = wx.FileDialog(self, "Save Videos Metadata file",
                         wildcard="csv (*.csv)|*.csv",
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if fileDialog.ShowModal() == wx.ID_CANCEL: return
+        if file_dialog.ShowModal() == wx.ID_CANCEL: return
 
-        fdOut = open (fileDialog.GetPath(), "w")
-        fdOut.write(";".join(self.lbVidHeaders)+"\n")
-        nVideos = 0
-        for lbVideoIdx in range(self.lbVideos.GetItemCount()):
-            if self.lbVideos.IsSelected(lbVideoIdx):
-                metaData = ";".join([self.lbVideos.GetItemText(lbVideoIdx, i)
+        fd_out = open (file_dialog.GetPath(), "w")
+        fd_out.write(";".join(self.lb_videos_headers)+"\n")
+        tot_videos = 0
+        for lb_video_idx in range(self.lb_videos.GetItemCount()):
+            if self.lb_videos.IsSelected(lb_video_idx):
+                metadata = ";".join([self.lb_videos.GetItemText(lb_video_idx, i)
                                         for i in range(7)])
-                fdOut.write(metaData+"\n")
-                nVideos += 1
-        fdOut.close()
+                fd_out.write(metadata+"\n")
+                tot_videos += 1
+        fd_out.close()
 
-        if nVideos == 0:
+        if tot_videos == 0:
             wx.MessageBox("Choose one or more videos!!!", version,
                             style=wx.OK | wx.ICON_INFORMATION)
 
-    def saveSlacks(self):
-        if not self.dhfs.imgLoaded:
+    def save_slacks(self):
+        if not self.dhfs.img_loaded:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
             return
 
-        dirToSave = self.getSavePath()
-        if dirToSave:
-            nSlack = 0
-            for lbVideoIdx in range(self.lbVideos.GetItemCount()):
-                if self.lbVideos.IsSelected(lbVideoIdx):
-                    pIndx = int(self.lbVideos.GetItemText(lbVideoIdx, 0))
-                    vIndx = int(self.lbVideos.GetItemText(lbVideoIdx, 1))
-                    self.dhfs.saveSlackAt(nSlack, pIndx, vIndx, dirToSave, self.SetStatusText)
-                    nSlack += 1
+        dir_save = self.get_save_path()
+        if dir_save:
+            tot_slack = 0
+            for lb_video_idx in range(self.lb_videos.GetItemCount()):
+                if self.lb_videos.IsSelected(lb_video_idx):
+                    part_idx = int(self.lb_videos.GetItemText(lb_video_idx, 0))
+                    video_idx = int(self.lb_videos.GetItemText(lb_video_idx, 1))
+                    self.dhfs.save_slack_at(tot_slack, part_idx, video_idx, dir_save, self.SetStatusText)
+                    tot_slack += 1
             self.SetStatusText(f"Done!!!")
 
-            if nSlack == 0:
+            if tot_slack == 0:
                 wx.MessageBox("Choose one or more slacks!!!", version,
                                     style=wx.OK | wx.ICON_INFORMATION)
 
-    def saveRecovered(self):
-        if not self.dhfs.imgLoaded:
+    def save_recovered(self):
+        if not self.dhfs.img_loaded:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
             return
 
-        dirToSave = self.getSavePath()
-        if dirToSave:
-            nVideos = 0
-            for pIndx in range(self.dhfs.getNumPartitions()):
-                nVideos += self.dhfs.saveRecVideos(pIndx, dirToSave, self.SetStatusText)
+        dir_save = self.get_save_path()
+        if dir_save:
+            tot_videos = 0
+            for part_idx in range(self.dhfs.get_num_partitions()):
+                tot_videos += self.dhfs.saveRecVideos(part_idx, dir_save, self.SetStatusText)
             self.SetStatusText(f"Done!!!")
-            wx.MessageBox(f"{nVideos} Video(s) sucessfully saved.", style=wx.OK)
+            wx.MessageBox(f"{tot_videos} Video(s) sucessfully saved.", style=wx.OK)
 
-    def saveLogs(self):
-        if not self.dhfs.imgLoaded:
+    def save_logs(self):
+        if not self.dhfs.img_loaded:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
             return
 
-        fileDialog = wx.FileDialog(self, "Save Log file",
+        file_dialog = wx.FileDialog(self, "Save Log file",
                         wildcard="log (*.log)|*.log",
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
 
-        if fileDialog.ShowModal() == wx.ID_CANCEL: return
+        if file_dialog.ShowModal() == wx.ID_CANCEL: return
 
-        fileToSave = fileDialog.GetPath()
-        self.dhfs.saveLogs (fileToSave)
+        file_save = file_dialog.GetPath()
+        self.dhfs.save_logs (file_save)
 
     def config(self):
         wx.MessageBox("You will be inquired to open one config file.\n\n"+
@@ -332,9 +332,9 @@ class DVRExtractor (wx.Frame):
 
         self.dlg = wx.FileDialog(self, "Escolha um arquivo", os.getcwd(), "")
         if self.dlg.ShowModal() == wx.ID_OK:
-            fileName = self.dlg.GetPath()
+            file_name = self.dlg.GetPath()
             try:
-                self.dhfs.setConfig(fileName)
+                self.dhfs.set_config(file_name)
             except Exception as e:
                 wx.MessageBox("Error in processing config file:\n"+str(e),
                             "Info", style=wx.OK)

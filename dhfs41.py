@@ -7,131 +7,131 @@ class DHFS41:
     def __init__(self, DEBUG=False):
         self.PART_TABLE_OFF = 0x3C00
         self.DESC_SIZE = 32
-        self.imgLoaded = False
+        self.img_loaded = False
         self.disk      = None
-        self.nParts = 0
+        self.num_parts = 0
 
         self.DEBUG = DEBUG
         self.config={}
         self.config['DEBUG'] = DEBUG
         self.config['CARVE_SIGNAT'] = re.compile(b"^\x44\x48\x49\x49")
 
-    def getNumbDescs(self, pIndx):
-        return len(self.alldescs[pIndx]) // self.DESC_SIZE
+    def get_num_descs(self, part_idx):
+        return len(self.all_descs[part_idx]) // self.DESC_SIZE
 
-    def getDesc(self, pIndx, dIndx):
-        posDesc = dIndx * self.DESC_SIZE
-        return self.alldescs[pIndx][posDesc: posDesc+self.DESC_SIZE]
+    def get_desc(self, part_idx, desc_idx):
+        off_desc = desc_idx * self.DESC_SIZE
+        return self.all_descs[part_idx][off_desc: off_desc+self.DESC_SIZE]
 
-    def getDescType(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_desc_type(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return  int.from_bytes(desc[0:1], byteorder='little')
 
-    def getBeginDesc(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_begin_desc(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[24:28], byteorder='little')
 
-    def getNextDesc(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_next_desc(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[12:16], byteorder='little')
 
-    def getPrevDesc(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_prev_desc(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[20:24], byteorder='little')
 
-    def getLastDesc(self, pIndx, dIndx):
-        nextDesc = self.getNextDesc(pIndx, dIndx)
+    def get_last_desc(self, part_idx, desc_idx):
+        nextDesc = self.get_next_desc(part_idx, desc_idx)
         if nextDesc == 0:
-            return dIndx
-        return self.getLastDesc(pIndx, nextDesc)
+            return desc_idx
+        return self.get_last_desc(part_idx, nextDesc)
 
-    def getNumberFrags(self, pIndx, dIndx):
-        if self.getDescType(pIndx, dIndx) == 1:
-            desc = self.getDesc(pIndx, dIndx)
+    def get_num_frags(self, part_idx, desc_idx):
+        if self.get_desc_type(part_idx, desc_idx) == 1:
+            desc = self.get_desc(part_idx, desc_idx)
             return int.from_bytes(desc[2:4], byteorder='little') + 1
         else:
-            return self.getNumberFrags(pIndx,
-                            self.getBeginDesc(pIndx, dIndx))
+            return self.get_num_frags(part_idx,
+                            self.get_begin_desc(part_idx, desc_idx))
 
-    def getFragNumber(self, pIndx, dIndx):
-        if self.getDescType(pIndx, dIndx) == 1:
+    def get_frag_number(self, part_idx, desc_idx):
+        if self.get_desc_type(part_idx, desc_idx) == 1:
             return 0
 
-        desc = self.getDesc(pIndx, dIndx)
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[2:4], byteorder='little')
 
-    def getCamera(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_camera(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[1:2], byteorder='little') - 48 + 1
 
-    def decodeTimeStamp(self, ts):
+    def decode_timestamp(self, ts):
         return extract_bits(ts, 31, 6), extract_bits(ts, 25, 4), \
                extract_bits(ts, 21, 5), extract_bits(ts, 16, 5), \
                extract_bits(ts, 11, 6), extract_bits(ts, 5, 6)
 
-    def getTimeStamps(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_timestamps(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return (int.from_bytes(desc[4:8], byteorder='little'),
                 int.from_bytes(desc[8:12], byteorder='little'))
 
-    def getBeginTimeStamp(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_begin_timestamp(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[4:8], byteorder='little')
 
-    def getEndTimeStamp(self, pIndx, dIndx):
-        desc = self.getDesc(pIndx, dIndx)
+    def get_end_timestamp(self, part_idx, desc_idx):
+        desc = self.get_desc(part_idx, desc_idx)
         return int.from_bytes(desc[8:12], byteorder='little')
 
-    def getBeginDate(self, pIndx, dIndx):
-        beginTimeStamp = self.getBeginTimeStamp(pIndx, dIndx)
+    def get_begin_date(self, part_idx, desc_idx):
+        beginTimeStamp = self.get_begin_timestamp(part_idx, desc_idx)
         return self.timeStampToDate(beginTimeStamp)
 
-    def getBeginTime(self, pIndx, dIndx):
-        beginTimeStamp = self.getBeginTimeStamp(pIndx, dIndx)
-        return self.timeStampToTime(beginTimeStamp)
+    def get_begin_time(self, part_idx, desc_idx):
+        timestamp = self.get_begin_timestamp(part_idx, desc_idx)
+        return self.timeStampToTime(timestamp)
 
-    def getEndTime(self, pIndx, dIndx):
-        endTimeStamp = self.getEndTimeStamp(pIndx, dIndx)
-        return self.timeStampToTime(endTimeStamp)
+    def get_end_time(self, part_idx, desc_idx):
+        timestamp = self.get_end_timestamp(part_idx, desc_idx)
+        return self.timeStampToTime(timestamp)
 
     def timeStampToDate(self, timestamp):
-        year, month, day, _, _, _ = self.decodeTimeStamp(timestamp)
+        year, month, day, _, _, _ = self.decode_timestamp(timestamp)
         return f"20{year:02d}-{month:02d}-{day:02d}"
 
     def timeStampToTime(self, timestamp):
-        _, _, _, hour, minute, sec = self.decodeTimeStamp(timestamp)
+        _, _, _, hour, minute, sec = self.decode_timestamp(timestamp)
         return f"{hour:02d}:{minute:02d}:{sec:02d}"
 
-    def timeStampToHuman(self, timestamp):
-        year, month, day, hour, minute, sec = self.decodeTimeStamp(timestamp)
+    def timestamp_human(self, timestamp):
+        year, month, day, hour, minute, sec = self.decode_timestamp(timestamp)
         return f"20{year:02d}-{month:02d}-{day:02d} "+\
                f"{hour:02d}:{minute:02d}:{sec:02d}"
 
-    def DecodeDesc(self, pIndx, dIndx):
+    def DecodeDesc(self, part_idx, desc_idx):
         dic = {
-            'descType'     : self.getDescType(pIndx, dIndx),
-            'camera'       : self.getCamera(pIndx, dIndx),
-            'begTime'      : self.timeStampToHuman(self.getBeginTimeStamp(pIndx, dIndx)),
-            'endTime'      : self.timeStampToHuman(self.getEndTimeStamp(pIndx, dIndx)),
-            'numFrag'      : self.getFragNumber(pIndx, dIndx),
-            'totFrags'     : self.getNumberFrags(pIndx, dIndx),
-            'beginDesc'    : self.getBeginDesc(pIndx, dIndx),
-            'prevDesc'     : self.getPrevDesc(pIndx, dIndx),
-            'nextDesc'     : self.getNextDesc(pIndx, dIndx),
-            'sizeLast'     : self.getLastFragSize(pIndx, dIndx),
-            'totalSize'    : self.getVideoSize(pIndx, dIndx),
-            'hex'          : " ".join([f"{x:02x}" for x in self.getDesc(pIndx, dIndx)])
+            'descType'     : self.get_desc_type(part_idx, desc_idx),
+            'camera'       : self.get_camera(part_idx, desc_idx),
+            'begTime'      : self.timestamp_human(self.get_begin_timestamp(part_idx, desc_idx)),
+            'endTime'      : self.timestamp_human(self.get_end_timestamp(part_idx, desc_idx)),
+            'numFrag'      : self.get_frag_number(part_idx, desc_idx),
+            'totFrags'     : self.get_num_frags(part_idx, desc_idx),
+            'beginDesc'    : self.get_begin_desc(part_idx, desc_idx),
+            'prevDesc'     : self.get_prev_desc(part_idx, desc_idx),
+            'nextDesc'     : self.get_next_desc(part_idx, desc_idx),
+            'sizeLast'     : self.get_last_frag_size(part_idx, desc_idx),
+            'totalSize'    : self.get_video_size(part_idx, desc_idx),
+            'hex'          : " ".join([f"{x:02x}" for x in self.get_desc(part_idx, desc_idx)])
         }
         return dic
 
-    def loadPartTable(self):
+    def load_partition_table(self):
         self.PART_OFFS = []
         self.SB_OFFS   = []
 
         self.disk.seek(self.PART_TABLE_OFF+0x34)
         partInfo = self.disk.read(64)
 
-        self.nParts = 0
+        self.num_parts = 0
         blkSize = 512
         while partInfo[:4] != b"\xAA\x55\xAA\x55":
             self.SB_OFFS.append(int.from_bytes(partInfo[20:24],
@@ -139,24 +139,24 @@ class DHFS41:
             self.PART_OFFS.append(int.from_bytes(partInfo[48:56],
                                                 byteorder='little') * blkSize)
             partInfo = self.disk.read(64)
-            self.nParts += 1
+            self.num_parts += 1
 
-    def getNumPartitions(self):
-        return self.nParts
+    def get_num_partitions(self):
+        return self.num_parts
 
     def loadImage(self, path):
-        if self.imgLoaded:
+        if self.img_loaded:
             self.disk.close()
-            self.imgLoaded = False
+            self.img_loaded = False
 
         self.disk = open(path, "rb")
         if self.disk.read(7) in [b'DHFS4.1']:
-            self.loadPartTable()
+            self.load_partition_table()
 
             #TODO: It needs processing each partition
             self.disk.seek(self.PART_OFFS[0] + self.SB_OFFS[0] + 0x10)
-            self.firstDate = int.from_bytes(self.disk.read(4), byteorder='little')
-            self.lastDate = int.from_bytes(self.disk.read(4), byteorder='little')
+            self.first_date = int.from_bytes(self.disk.read(4), byteorder='little')
+            self.last_date = int.from_bytes(self.disk.read(4), byteorder='little')
 
             self.disk.seek(self.PART_OFFS[0] + self.SB_OFFS[0] + 0x2c)
             self.BLK_SIZE = int.from_bytes(self.disk.read(4), byteorder='little')
@@ -166,106 +166,106 @@ class DHFS41:
             self.FRAG_RESERVED = (int.from_bytes(self.disk.read(4), byteorder='little'))
 
             self.disk.seek(self.PART_OFFS[0] + self.SB_OFFS[0] + 0xF8)
-            self.logsOffset = int.from_bytes(self.disk.read(4), byteorder='little') * self.BLK_SIZE
+            self.logs_offset = int.from_bytes(self.disk.read(4), byteorder='little') * self.BLK_SIZE
 
-            self.imgLoaded = True
-            self.loadDescs()
-            self.printMetaData()
+            self.img_loaded = True
+            self.load_descs()
+            self.print_metadata()
             #print ("Last offset: ", self.PART_OFFS[0] + self.VID_OFF + self.NUM_FRAGS*self.FRAG_SIZE )
 
-        return self.imgLoaded
+        return self.img_loaded
 
-    def getImageMetaData(self):
-        if self.imgLoaded:
+    def get_image_metadata(self):
+        if self.img_loaded:
             message  =  "*"*20+" Disk Metadata "+"*"*20+"\n"
             message += f"Block size: {self.BLK_SIZE}\n"
             message += f"Fragment Size: {self.FRAG_SIZE}\n"
             message += f"Fragments Reserved: {self.FRAG_RESERVED}/partition\n"
-            for pIndx in range(self.nParts):
-                partStart = self.PART_OFFS[pIndx]
-                message += "-"*20+f" Partition {pIndx} "+"-"*20+"\n"
-                message += f"\tDescriptors offset: {partStart + self.DESC_OFF[pIndx]}\n"
-                message += f"\tNumber of fragmentes: {self.NUM_FRAGS[pIndx]}\n"
-                message += f"\tVideos offset: {partStart + self.VID_OFF[pIndx]}\n"
+            for part_idx in range(self.num_parts):
+                part_offset = self.PART_OFFS[part_idx]
+                message += "-"*20+f" Partition {part_idx} "+"-"*20+"\n"
+                message += f"\tDescriptors offset: {part_offset + self.DESC_OFF[part_idx]}\n"
+                message += f"\tNumber of fragmentes: {self.NUM_FRAGS[part_idx]}\n"
+                message += f"\tVideos offset: {part_offset + self.VID_OFF[part_idx]}\n"
                 message += "\tVideos offset after reserved: "
-                message += f"{partStart + self.VID_OFF[pIndx] + self.FRAG_RESERVED*self.FRAG_SIZE}\n"
+                message += f"{part_offset + self.VID_OFF[part_idx] + self.FRAG_RESERVED*self.FRAG_SIZE}\n"
             return message
         else:
             return "No image loaded!!!"
 
-    def printMetaData(self):
-        print (self.getImageMetaData())
+    def print_metadata(self):
+        print (self.get_image_metadata())
 
-    def getDescTypes(self, pIndx):
-        allDescTypes = {}
-        for indx in range(self.NUM_FRAGS[pIndx]):
-            descType = self.getDescType(pIndx, indx)
-            allDescTypes[descType] = allDescTypes.get(descType, 0) + 1
-        return allDescTypes
+    def getDescTypes(self, part_idx):
+        all_desc_types = {}
+        for indx in range(self.NUM_FRAGS[part_idx]):
+            desc_type = self.get_desc_type(part_idx, indx)
+            all_desc_types[desc_type] = all_desc_types.get(desc_type, 0) + 1
+        return all_desc_types
 
-    def getLastFragSize(self, pIndx, dIndx):
-        if self.getDescType(pIndx, dIndx) == 1:
-            desc = self.getDesc(pIndx, dIndx)
-            return int.from_bytes(desc[16:20], byteorder='little')* self.BLK_SIZE
+    def get_last_frag_size(self, part_idx, desc_idx):
+        if self.get_desc_type(part_idx, desc_idx) == 1:
+            desc = self.get_desc(part_idx, desc_idx)
+            return int.from_bytes(desc[16:20], byteorder='little') * self.BLK_SIZE
         else:
-            return self.getLastFragSize(pIndx,
-                            self.getBeginDesc(pIndx, dIndx))
+            return self.get_last_frag_size(part_idx,
+                            self.get_begin_desc(part_idx, desc_idx))
 
-    def getFragsInVideo(self, pIndx, dIndx):
+    def getFragsInVideo(self, part_idx, desc_idx):
         allFrags = []
-        begDesc = dIndx
-        numFrags = self.getNumberFrags(pIndx, dIndx)
+        begDesc = desc_idx
+        numFrags = self.get_num_frags(part_idx, desc_idx)
 
         idx = 0
-        while dIndx != 0 and dIndx != 0xFFFFFFFF:
-            allFrags.append(dIndx)
+        while desc_idx != 0 and desc_idx != 0xFFFFFFFF:
+            allFrags.append(desc_idx)
             idx += 1
-            dIndx = self.getNextDesc(pIndx, dIndx)
+            desc_idx = self.get_next_desc(part_idx, desc_idx)
 
         if  self.DEBUG and (idx > numFrags):
-            print (f"\t\tVideo {begDesc} in partition {pIndx} has more frags "+
+            print (f"\t\tVideo {begDesc} in partition {part_idx} has more frags "+
                    "than in main desc. 'Extract' will use greater size!")
         return allFrags
 
-    def getMainDescs(self, pIndx):
-        if self.imgLoaded:
-            for dIndx in range(self.NUM_FRAGS[pIndx]):
-                descType  = self.getDescType(pIndx, dIndx)
-                descBegTime, descEndTime = self.getTimeStamps(pIndx, dIndx)
+    def get_main_descs(self, part_idx):
+        if self.img_loaded:
+            for desc_idx in range(self.NUM_FRAGS[part_idx]):
+                desc_type  = self.get_desc_type(part_idx, desc_idx)
+                begin_time, end_time = self.get_timestamps(part_idx, desc_idx)
 
-                if (descType in [1]) and descBegTime != descEndTime:
-                    yield dIndx
+                if (desc_type in [1]) and begin_time != end_time:
+                    yield desc_idx
         return
 
-    def getFreeDescs(self, pIndx):
-        if self.imgLoaded:
-            for dIndx in range(self.NUM_FRAGS[pIndx]):
-                descType  = self.getDescType(pIndx, dIndx)
-                if descType == 0:
-                    yield dIndx
+    def getFreeDescs(self, part_idx):
+        if self.img_loaded:
+            for desc_idx in range(self.NUM_FRAGS[part_idx]):
+                desc_type  = self.get_desc_type(part_idx, desc_idx)
+                if desc_type == 0:
+                    yield desc_idx
         return
 
-    def getDirtyDescs(self, pIndx):
-        if self.imgLoaded:
-            for dIndx in range(self.NUM_FRAGS[pIndx]):
-                descType  = self.getDescType(pIndx, dIndx)
+    def getDirtyDescs(self, part_idx):
+        if self.img_loaded:
+            for desc_idx in range(self.NUM_FRAGS[part_idx]):
+                desc_type  = self.get_desc_type(part_idx, desc_idx)
 
-                if descType == 2:
-                    beginDesc = self.getBeginDesc(pIndx, dIndx)
-                    fragsInBegin = self.fragsInVideos[pIndx].get(beginDesc, [])
-                    if dIndx not in fragsInBegin:
-                        yield dIndx
+                if desc_type == 2:
+                    begin_desc = self.get_begin_desc(part_idx, desc_idx)
+                    frags_begin = self.frags_in_videos[part_idx].get(begin_desc, [])
+                    if desc_idx not in frags_begin:
+                        yield desc_idx
         return
 
-    def loadDescs(self):
+    def load_descs(self):
         self.DESC_OFF = []
         self.VID_OFF = []
         self.NUM_FRAGS = []
-        self.alldescs = []
-        self.numVideos = []
+        self.all_descs = []
+        self.num_videos = []
 
-        for partOff in self.PART_OFFS:
-            self.disk.seek(partOff + self.SB_OFFS[0] + 0x44)
+        for part_offset in self.PART_OFFS:
+            self.disk.seek(part_offset + self.SB_OFFS[0] + 0x44)
             self.DESC_OFF.append(int.from_bytes(self.disk.read(4),
                                         byteorder='little') * self.BLK_SIZE)
             self.VID_OFF.append(int.from_bytes(self.disk.read(4),
@@ -273,243 +273,228 @@ class DHFS41:
             self.NUM_FRAGS.append(int.from_bytes(self.disk.read(4),
                                         byteorder='little'))
 
-            self.disk.seek(partOff + self.DESC_OFF[-1])
-            self.alldescs.append(self.disk.read(self.DESC_SIZE * self.NUM_FRAGS[-1]))
+            self.disk.seek(part_offset + self.DESC_OFF[-1])
+            self.all_descs.append(self.disk.read(self.DESC_SIZE * self.NUM_FRAGS[-1]))
 
-        self.fragsInVideos = []
-        self.freeFrags = []
-        self.dirtyFrags = []
+        self.frags_in_videos = []
+        self.free_frags = []
+        self.dirty_frags = []
 
-        for pIndx in range(self.nParts):
+        for part_idx in range(self.num_parts):
             if self.DEBUG:
-                print ("Partition: ", pIndx)
+                print ("Partition: ", part_idx)
                 print ("\tGetting desc types...")
-            allDescTypes = self.getDescTypes(pIndx)
+            all_desc_types = self.getDescTypes(part_idx)
 
             if self.DEBUG:
                 print ("\tLinking fragments to each main desc...")
-            fragsInVideos = {}
-            for indx in self.getMainDescs(pIndx):
-                fragsInVideos[indx] = self.getFragsInVideo(pIndx, indx)
-            self.fragsInVideos.append(fragsInVideos)
+            frags_in_videos = {}
+            for desc_idx in self.get_main_descs(part_idx):
+                frags_in_videos[desc_idx] = self.getFragsInVideo(part_idx, desc_idx)
+            self.frags_in_videos.append(frags_in_videos)
 
             if self.DEBUG:
                 print ("\tGetting free fragments...")
-            self.freeFrags.append([])
-            for indx in self.getFreeDescs(pIndx):
-                self.freeFrags[pIndx].append(indx)
+            self.free_frags.append([])
+            for desc_idx in self.getFreeDescs(part_idx):
+                self.free_frags[part_idx].append(desc_idx)
 
             if self.DEBUG:
                 print ("\tGetting dirty fragments...")
-            self.dirtyFrags.append([])
-            for indx in self.getDirtyDescs(pIndx):
-                self.dirtyFrags[pIndx].append(indx)
-
-
+            self.dirty_frags.append([])
+            for desc_idx in self.getDirtyDescs(part_idx):
+                self.dirty_frags[part_idx].append(desc_idx)
+                
         #print ("Fragmentos encadeados em videos", fragsInVideos)
         #print ("Fragmentos alocdos", fragsAloc)
 
-
-        '''
-        fd = open("logs.bin", "wb")
-        self.disk.seek(0)
-        fd.write(self.disk.read(self.VID_OFF[0]+2120*2**21))
-        fd.close()
-        '''
-
-    def getSlackSize(self, pIndx, dIndx):
-        if self.getDescType(pIndx, dIndx) == 1:
-            desc = self.getDesc(pIndx, dIndx)
-            return self.FRAG_SIZE - self.getLastFragSize(pIndx, dIndx)
+    def get_slack_size(self, part_idx, desc_idx):
+        if self.get_desc_type(part_idx, desc_idx) == 1:
+            desc = self.get_desc(part_idx, desc_idx)
+            return self.FRAG_SIZE - self.get_last_frag_size(part_idx, desc_idx)
         else:
-            return self.getSlackSize(pIndx,
-                            self.getBeginDesc(pIndx, dIndx))
+            return self.get_slack_size(part_idx,
+                            self.get_begin_desc(part_idx, desc_idx))
 
-    def getVideoSize(self, pIndx, dIndx):
-        return ((self.getNumberFrags(pIndx, dIndx) - 1) * self.FRAG_SIZE +
-                self.getLastFragSize(pIndx, dIndx))
+    def get_video_size(self, part_idx, desc_idx):
+        return ((self.get_num_frags(part_idx, desc_idx) - 1) * self.FRAG_SIZE +
+                self.get_last_frag_size(part_idx, desc_idx))
 
-    def readFrag(self, pIndx, fIndx):
-        self.disk.seek(self.PART_OFFS[pIndx] + self.VID_OFF[pIndx] +
+    def read_fragment(self, part_idx, fIndx):
+        self.disk.seek(self.PART_OFFS[part_idx] + self.VID_OFF[part_idx] +
                         fIndx * self.FRAG_SIZE)
         return self.disk.read(self.FRAG_SIZE)
 
-    def readLastFrag(self, pIndx, fIndx):
-        self.disk.seek(self.PART_OFFS[pIndx] + self.VID_OFF[pIndx] +
+    def read_last_fragment(self, part_idx, fIndx):
+        self.disk.seek(self.PART_OFFS[part_idx] + self.VID_OFF[part_idx] +
                         fIndx * self.FRAG_SIZE)
-        return self.disk.read(self.getLastFragSize(pIndx, fIndx))
+        return self.disk.read(self.get_last_frag_size(part_idx, fIndx))
 
-    def readSlackFrag (self, pIndx, fIndx):
-        posSlack = self.getLastFragSize(pIndx, fIndx)
-        self.disk.seek(self.PART_OFFS[pIndx] + self.VID_OFF[pIndx] +
+    def read_slack_fragment (self, part_idx, fIndx):
+        posSlack = self.get_last_frag_size(part_idx, fIndx)
+        self.disk.seek(self.PART_OFFS[part_idx] + self.VID_OFF[part_idx] +
                         fIndx * self.FRAG_SIZE + posSlack)
         return self.disk.read(self.FRAG_SIZE - posSlack)
 
-    def saveVideoAt (self, pIndx, dIndx, path, logFunc = None):
-        if self.imgLoaded:
-            date     = self.getBeginDate(pIndx, dIndx)
-            begin    = self.getBeginTime(pIndx, dIndx)
-            end      = self.getEndTime(pIndx, dIndx)
-            cam      = self.getCamera(pIndx, dIndx)
-            totFrag  = self.getNumberFrags(pIndx, dIndx)
+    def save_video_at (self, part_idx, desc_idx, path, logFunc = None):
+        if self.img_loaded:
+            date     = self.get_begin_date(part_idx, desc_idx)
+            begin    = self.get_begin_time(part_idx, desc_idx)
+            end      = self.get_end_time(part_idx, desc_idx)
+            cam      = self.get_camera(part_idx, desc_idx)
+            totFrag  = self.get_num_frags(part_idx, desc_idx)
 
-            fileName = f"Video-p{pIndx}-{dIndx:06d}-{date.replace('-','')}-"
-            fileName += f"{begin.replace(':','')}-{end.replace(':','')}-"
-            fileName += f"ch{cam:02d}.h264"
-            fullName = path+"/"+fileName
+            file_name  = f"Video-p{part_idx}-{desc_idx:06d}-{date.replace('-','')}-"
+            file_name += f"{begin.replace(':','')}-{end.replace(':','')}-"
+            file_name += f"ch{cam:02d}.h264"
+            fullName   = path+"/"+file_name
 
-            with open (fullName, "wb") as fdOut:
-                frags = self.fragsInVideos[pIndx][dIndx]
-                idx = 0
-                for idx in range(len(frags) - 1):
-                    fdOut.write(self.readFrag(pIndx, frags[idx]))
-                    idx += 1
+            with open (fullName, "wb") as fd_out:
+                frags = self.frags_in_videos[part_idx][desc_idx]
+                frag_idx = 0
+                for frag_idx in range(len(frags) - 1):
+                    fd_out.write(self.read_fragment(part_idx, frags[frag_idx]))
+                    frag_idx += 1
                     if logFunc:
-                        logFunc(f"Saving {fileName} ({idx*100/len(frags):4.2f}%)")
-                fdOut.write(self.readLastFrag(pIndx, frags[idx]))
-                fdOut.close()
-            return fileName
+                        logFunc(f"Saving {file_name} ({frag_idx*100/len(frags):4.2f}%)")
+                fd_out.write(self.read_last_fragment(part_idx, frags[frag_idx]))
+                fd_out.close()
+            return file_name
         else:
             return None
 
-    def saveSlackAt (self, idx, pIndx, dIndx, path, logFunc = None):
-        if self.imgLoaded and self.getSlackSize(pIndx, dIndx) > 0:
-            date     = self.getBeginDate(pIndx, dIndx)
-            begin    = self.getBeginTime(pIndx, dIndx)
-            end      = self.getEndTime(pIndx, dIndx)
-            cam      = self.getCamera(pIndx, dIndx)
-            sizeLast = self.getCamera(pIndx, dIndx)
-            fileName = f"{idx:04d}-Slack-p{pIndx}-{dIndx:06d}-"
-            fileName += f"{date.replace('-','')}-"
-            fileName += f"{begin.replace(':','')}-{end.replace(':','')}-"
-            fileName += f"ch{cam:02d}.h264"
-            fullName = path+"/"+fileName
+    def save_slack_at (self, idx, part_idx, desc_idx, path, log_func = None):
+        if self.img_loaded and self.get_slack_size(part_idx, desc_idx) > 0:
+            date     = self.get_begin_date(part_idx, desc_idx)
+            begin    = self.get_begin_time(part_idx, desc_idx)
+            end      = self.get_end_time(part_idx, desc_idx)
+            cam      = self.get_camera(part_idx, desc_idx)
+            size_last = self.get_camera(part_idx, desc_idx)
+            file_name = f"{idx:04d}-Slack-p{part_idx}-{desc_idx:06d}-"
+            file_name += f"{date.replace('-','')}-"
+            file_name += f"{begin.replace(':','')}-{end.replace(':','')}-"
+            file_name += f"ch{cam:02d}.h264"
+            full_name = path+"/"+file_name
 
-            with open (fullName, "wb") as fdOut:
-                if logFunc:
-                    logFunc(f"Saving {fileName}")
+            with open (full_name, "wb") as fd_out:
+                if log_func: log_func(f"Saving {file_name}")
 
-                lastDesc = self.fragsInVideos[pIndx][dIndx][-1]
-                fdOut.write(self.readSlackFrag(pIndx, lastDesc))
-                fdOut.close()
-            return fileName
+                last_desc = self.frags_in_videos[part_idx][desc_idx][-1]
+                fd_out.write(self.read_slack_fragment(part_idx, last_desc))
+                fd_out.close()
+            return file_name
         else:
             return None
 
 
-    def saveRecAtFree (self, pIndx, path, logFunc):
-        nVideos = 0
-        fileD = None
+    def saveRecAtFree (self, part_idx, path, log_func):
+        tot_videos = 0
+        file_desc = None
         signature = self.config['CARVE_SIGNAT']
 
-        for indx in self.freeFrags[pIndx]:
-            fragData = self.readFrag(pIndx, indx)
+        for frag_idx in self.free_frags[part_idx]:
+            frag_data = self.read_fragment(part_idx, frag_idx)
 
             #Looks for signature in first 32 bytes
-            if signature.search(fragData[:32]):
-                if fileD:
-                    nVideos += 1
-                    fileD.close()
+            if signature.search(frag_data[:32]):
+                if file_desc:
+                    tot_videos += 1
+                    file_desc.close()
 
-                fileName = f"FragFree-{indx:06d}.h264"
-                fileD = open(path+"/"+fileName, "wb")
-                fileD.write(fragData)
-                if logFunc:
-                    logFunc(f"Saving vídeo {fileName}")
-            elif fileD:
-                fileD.write(fragData)
+                fileName = f"FragFree-{frag_idx:06d}.h264"
+                file_desc = open(path+"/"+fileName, "wb")
+                file_desc.write(frag_data)
+                if log_func:
+                    log_func(f"Saving vídeo {fileName}")
+            elif file_desc:
+                file_desc.write(frag_data)
 
-        if fileD:
-            nVideos += 1
-            fileD.close()
+        if file_desc:
+            tot_videos += 1
+            file_desc.close()
 
-        return nVideos
+        return tot_videos
 
-    def saveRecAtDirty (self, pIndx, path, logFunc):
-        nVideos = 0
-        fileD = None
+    def saveRecAtDirty (self, part_idx, path, log_func):
+        tot_videos = 0
+        file_desc = None
 
-        alreadySaved = []
-        begDesc  = -1
+        already_saved = []
+        beg_desc  = -1
 
-        totDirtyFrags = len(self.dirtyFrags[pIndx])
-        indx  = 0
+        tot_dirty_frags = len(self.dirty_frags[part_idx])
+        idx  = 0
 
-        while len(alreadySaved) < totDirtyFrags:
-            if self.dirtyFrags[pIndx][indx] not in alreadySaved:
-                dIndx = self.dirtyFrags[pIndx][indx]
+        while len(already_saved) < tot_dirty_frags:
+            if self.dirty_frags[part_idx][idx] not in already_saved:
+                desc_idx = self.dirty_frags[part_idx][idx]
 
-                date     = self.getBeginDate(pIndx, dIndx)
-                begin    = self.getBeginTime(pIndx, dIndx)
-                cam      = self.getCamera(pIndx, dIndx)
-                fileName = f"FragDirty-p{pIndx}-{dIndx:06d}-{date.replace('-','')}-"
-                fileName += f"{begin.replace(':','')}-"
-                fileName += f"ch{cam:02d}.h264"
-                fullName = path+"/"+fileName
+                date     = self.get_begin_date(part_idx, desc_idx)
+                begin    = self.get_begin_time(part_idx, desc_idx)
+                cam      = self.get_camera(part_idx, desc_idx)
+                file_name = f"FragDirty-p{part_idx}-{desc_idx:06d}-{date.replace('-','')}-"
+                file_name += f"{begin.replace(':','')}-"
+                file_name += f"ch{cam:02d}.h264"
+                full_name = path+"/"+file_name
 
-                fileD = open(fullName, "wb")
-                if logFunc:
-                    logFunc(f"Saving vídeo {fileName}")
+                file_desc = open(full_name, "wb")
+                if log_func:
+                    log_func(f"Saving vídeo {file_name}")
 
-                fileD.write(self.readFrag(pIndx, dIndx))
-                alreadySaved.append(dIndx)
-                nextDesc = self.getNextDesc(pIndx, dIndx)
+                file_desc.write(self.read_fragment(part_idx, desc_idx))
+                already_saved.append(desc_idx)
+                nextDesc = self.get_next_desc(part_idx, desc_idx)
                 if self.DEBUG:
-                    print (f"pIndx {pIndx} dIndx {dIndx} nextDesc {nextDesc}"+
-                           f"baseDesc {self.getBeginDesc(pIndx, dIndx)} "+
-                           f"baseNext {self.getBeginDesc(pIndx, nextDesc)}")
+                    print (f"part_idx {part_idx} desc_idx {desc_idx} nextDesc {nextDesc}"+
+                           f"baseDesc {self.get_begin_desc(part_idx, desc_idx)} "+
+                           f"baseNext {self.get_begin_desc(part_idx, nextDesc)}")
 
-                while (nextDesc != 0) and (self.getBeginDesc(pIndx, dIndx) ==
-                                           self.getBeginDesc(pIndx, nextDesc)):
-                    dIndx = nextDesc
-                    fileD.write(self.readFrag(pIndx, dIndx))
-                    alreadySaved.append(dIndx)
-                    nextDesc = self.getNextDesc(pIndx, dIndx)
+                while (nextDesc != 0) and (self.get_begin_desc(part_idx, desc_idx) ==
+                                           self.get_begin_desc(part_idx, nextDesc)):
+                    desc_idx = nextDesc
+                    file_desc.write(self.read_fragment(part_idx, desc_idx))
+                    already_saved.append(desc_idx)
+                    nextDesc = self.get_next_desc(part_idx, desc_idx)
 
                     if self.DEBUG:
-                        print (f"pIndx {pIndx} dIndx {dIndx} nextDesc {nextDesc}"+
-                               f"baseDesc {self.getBeginDesc(pIndx, dIndx)} "+
-                               f"baseNext {self.getBeginDesc(pIndx, nextDesc)}")
+                        print (f"part_idx {part_idx} desc_idx {desc_idx} nextDesc {nextDesc}"+
+                               f"baseDesc {self.get_begin_desc(part_idx, desc_idx)} "+
+                               f"baseNext {self.get_begin_desc(part_idx, nextDesc)}")
 
-                fileD.close()
-                nVideos += 1
+                file_desc.close()
+                tot_videos += 1
+            idx += 1
+        return tot_videos
 
-            indx += 1
-
-
-        return nVideos
-
-    def saveRecVideos(self, pIndx, path, logFunc = None):
-        nVideos = 0
-        if self.imgLoaded:
-            nVideos  = self.saveRecAtFree (pIndx, path, logFunc)
-            nVideos += self.saveRecAtDirty(pIndx, path, logFunc)
-        return nVideos
+    def saveRecVideos(self, part_idx, path, log_func = None):
+        tot_videos = 0
+        if self.img_loaded:
+            tot_videos  = self.saveRecAtFree (part_idx, path, log_func)
+            tot_videos += self.saveRecAtDirty(part_idx, path, log_func)
+        return tot_videos
 
 
-    def saveLogs(self, fullPath):
-        self.disk.seek(self.logsOffset)
-        logsHeader = self.disk.read(2 * self.BLK_SIZE)
-        logsSize = int.from_bytes(logsHeader[:4], byteorder='little') - 2 * self.BLK_SIZE
+    def save_logs(self, fullPath):
+        self.disk.seek(self.logs_offset)
+        logs_header = self.disk.read(2 * self.BLK_SIZE)
+        logs_size = int.from_bytes(logs_header[:4], byteorder='little') - 2 * self.BLK_SIZE
 
-        fileD = open(fullPath, "wb")
-        fileD.write(self.disk.read(logsSize))
-        fileD.close()
+        file_desc = open(fullPath, "wb")
+        file_desc.write(self.disk.read(logs_size))
+        file_desc.close()
 
-    def setConfig(self, fileName):
+    def set_config(self, fileName):
         castings = {"CARVE_SIGNAT" : lambda e: re.compile(("^"+e).encode()),
                     "DEBUG" : bool}
 
-        fd = open (fileName, "r")
-        for line in fd:
+        file_desc = open (fileName, "r")
+        for line in file_desc:
             line = line.strip()
-            print (line)
             if (len(line) > 0) and (line[0] != "#"):
-                eqIdx = line.find("=")
-                if eqIdx > 0:
-                    key   = line[:eqIdx].strip()
-                    value = line[eqIdx+1:].strip()
+                eq_pos = line.find("=")
+                if eq_pos > 0:
+                    key   = line[:eq_pos].strip()
+                    value = line[eq_pos+1:].strip()
                     self.config[key] = castings[key](value)
-        fd.close()
+        file_desc.close()
         self.DEBUG = self.config['DEBUG']
-        print (self.config)
