@@ -84,21 +84,21 @@ class DHFS41:
 
     def get_begin_date(self, part_idx, desc_idx):
         beginTimeStamp = self.get_begin_timestamp(part_idx, desc_idx)
-        return self.timeStampToDate(beginTimeStamp)
+        return self.timestamp_to_date(beginTimeStamp)
 
     def get_begin_time(self, part_idx, desc_idx):
         timestamp = self.get_begin_timestamp(part_idx, desc_idx)
-        return self.timeStampToTime(timestamp)
+        return self.timestamp_to_time(timestamp)
 
     def get_end_time(self, part_idx, desc_idx):
         timestamp = self.get_end_timestamp(part_idx, desc_idx)
-        return self.timeStampToTime(timestamp)
+        return self.timestamp_to_time(timestamp)
 
-    def timeStampToDate(self, timestamp):
+    def timestamp_to_date(self, timestamp):
         year, month, day, _, _, _ = self.decode_timestamp(timestamp)
         return f"20{year:02d}-{month:02d}-{day:02d}"
 
-    def timeStampToTime(self, timestamp):
+    def timestamp_to_time(self, timestamp):
         _, _, _, hour, minute, sec = self.decode_timestamp(timestamp)
         return f"{hour:02d}:{minute:02d}:{sec:02d}"
 
@@ -107,7 +107,7 @@ class DHFS41:
         return f"20{year:02d}-{month:02d}-{day:02d} "+\
                f"{hour:02d}:{minute:02d}:{sec:02d}"
 
-    def DecodeDesc(self, part_idx, desc_idx):
+    def decode_descriptor(self, part_idx, desc_idx):
         dic = {
             'descType'     : self.get_desc_type(part_idx, desc_idx),
             'camera'       : self.get_camera(part_idx, desc_idx),
@@ -144,7 +144,7 @@ class DHFS41:
     def get_num_partitions(self):
         return self.num_parts
 
-    def loadImage(self, path):
+    def load_image(self, path):
         if self.img_loaded:
             self.disk.close()
             self.img_loaded = False
@@ -196,7 +196,7 @@ class DHFS41:
     def print_metadata(self):
         print (self.get_image_metadata())
 
-    def getDescTypes(self, part_idx):
+    def get_desc_types(self, part_idx):
         all_desc_types = {}
         for indx in range(self.NUM_FRAGS[part_idx]):
             desc_type = self.get_desc_type(part_idx, indx)
@@ -211,7 +211,7 @@ class DHFS41:
             return self.get_last_frag_size(part_idx,
                             self.get_begin_desc(part_idx, desc_idx))
 
-    def getFragsInVideo(self, part_idx, desc_idx):
+    def get_frags_video(self, part_idx, desc_idx):
         allFrags = []
         begDesc = desc_idx
         numFrags = self.get_num_frags(part_idx, desc_idx)
@@ -237,7 +237,7 @@ class DHFS41:
                     yield desc_idx
         return
 
-    def getFreeDescs(self, part_idx):
+    def get_free_descs(self, part_idx):
         if self.img_loaded:
             for desc_idx in range(self.NUM_FRAGS[part_idx]):
                 desc_type  = self.get_desc_type(part_idx, desc_idx)
@@ -245,7 +245,7 @@ class DHFS41:
                     yield desc_idx
         return
 
-    def getDirtyDescs(self, part_idx):
+    def get_dirty_descs(self, part_idx):
         if self.img_loaded:
             for desc_idx in range(self.NUM_FRAGS[part_idx]):
                 desc_type  = self.get_desc_type(part_idx, desc_idx)
@@ -284,25 +284,26 @@ class DHFS41:
             if self.DEBUG:
                 print ("Partition: ", part_idx)
                 print ("\tGetting desc types...")
-            all_desc_types = self.getDescTypes(part_idx)
+
+            all_desc_types = self.get_desc_types(part_idx)
 
             if self.DEBUG:
                 print ("\tLinking fragments to each main desc...")
             frags_in_videos = {}
             for desc_idx in self.get_main_descs(part_idx):
-                frags_in_videos[desc_idx] = self.getFragsInVideo(part_idx, desc_idx)
+                frags_in_videos[desc_idx] = self.get_frags_video(part_idx, desc_idx)
             self.frags_in_videos.append(frags_in_videos)
 
             if self.DEBUG:
                 print ("\tGetting free fragments...")
             self.free_frags.append([])
-            for desc_idx in self.getFreeDescs(part_idx):
+            for desc_idx in self.get_free_descs(part_idx):
                 self.free_frags[part_idx].append(desc_idx)
 
             if self.DEBUG:
                 print ("\tGetting dirty fragments...")
             self.dirty_frags.append([])
-            for desc_idx in self.getDirtyDescs(part_idx):
+            for desc_idx in self.get_dirty_descs(part_idx):
                 self.dirty_frags[part_idx].append(desc_idx)
                 
         #print ("Fragmentos encadeados em videos", fragsInVideos)
@@ -386,8 +387,7 @@ class DHFS41:
         else:
             return None
 
-
-    def saveRecAtFree (self, part_idx, path, log_func):
+    def save_recovered_at_free (self, part_idx, path, log_func):
         tot_videos = 0
         file_desc = None
         signature = self.config['CARVE_SIGNAT']
@@ -415,7 +415,7 @@ class DHFS41:
 
         return tot_videos
 
-    def saveRecAtDirty (self, part_idx, path, log_func):
+    def save_recovered_at_dirty (self, part_idx, path, log_func):
         tot_videos = 0
         file_desc = None
 
@@ -466,11 +466,11 @@ class DHFS41:
             idx += 1
         return tot_videos
 
-    def saveRecVideos(self, part_idx, path, log_func = None):
+    def save_recovered_videos(self, part_idx, path, log_func = None):
         tot_videos = 0
         if self.img_loaded:
-            tot_videos  = self.saveRecAtFree (part_idx, path, log_func)
-            tot_videos += self.saveRecAtDirty(part_idx, path, log_func)
+            tot_videos  = self.save_recovered_at_free (part_idx, path, log_func)
+            tot_videos += self.save_recovered_at_dirty(part_idx, path, log_func)
         return tot_videos
 
 

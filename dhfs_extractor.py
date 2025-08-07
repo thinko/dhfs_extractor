@@ -145,8 +145,8 @@ class DVRExtractor (wx.Frame):
             fileName = self.dlg.GetPath()
 
             self.SetStatusText("Loading Image...")
-            if self.dhfs.loadImage(fileName):
-                self.showVideosInfo()
+            if self.dhfs.load_image(fileName):
+                self.show_videos_info()
             else:
                 self.SetStatusText("")
                 wx.MessageBox("This is not a DHFS4.1 filesystem!!!", version,
@@ -162,7 +162,7 @@ class DVRExtractor (wx.Frame):
         else:
             wx.MessageBox("No image/disk loaded!!!!!!", "Warning", style=wx.OK)
 
-    def showVideosInfo(self):
+    def show_videos_info(self):
         all_video_dates  = []
         all_cameras      = []
         for p_idx in range(self.dhfs.get_num_partitions()):
@@ -301,7 +301,7 @@ class DVRExtractor (wx.Frame):
         if dir_save:
             tot_videos = 0
             for part_idx in range(self.dhfs.get_num_partitions()):
-                tot_videos += self.dhfs.saveRecVideos(part_idx, dir_save, self.SetStatusText)
+                tot_videos += self.dhfs.save_recovered_videos(part_idx, dir_save, self.SetStatusText)
             self.SetStatusText(f"Done!!!")
             wx.MessageBox(f"{tot_videos} Video(s) sucessfully saved.", style=wx.OK)
 
