@@ -90,11 +90,13 @@ class dhfs_extractor(wx.Frame, listmix.ColumnSorterMixin):
         self.SetToolBar(self.toolbar)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        splitter = wx.SplitterWindow(self, style=wx.SP_NOSASH)
+        splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_BORDER)
         main_sizer.Add(splitter, 1, wx.EXPAND)
 
-        self.right_panel = wx.Panel(splitter)
         self.left_panel = wx.Panel(splitter)
+        self.left_panel.SetMinSize((150, -1))  # Set minimum width for left panel
+        self.right_panel = wx.Panel(splitter)
+        self.right_panel.SetMinSize((300, -1))  # Set minimum width for right panel
         splitter.SplitVertically(self.left_panel, self.right_panel, sashPosition=220)
 
         # Left panel sizer
