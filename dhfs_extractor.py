@@ -40,10 +40,9 @@ class dhfs_extractor(wx.Frame, listmix.ColumnSorterMixin):
     def GetListCtrl(self):
         return self.video_list
 
-    def GetSortImages(self):
-        # optional: provide down/up bitmaps for header arrows
-        art = wx.ArtProvider
-        return (art.GetBitmap(wx.ART_GO_DOWN), art.GetBitmap(wx.ART_GO_UP))
+    def GetSortImages(self): # type: ignore
+        # Return the indices of the images in the ImageList, not the bitmaps themselves.
+        return (0, 1)
 
     def create_gui(self):
         art = wx.ArtProvider
@@ -91,6 +90,7 @@ class dhfs_extractor(wx.Frame, listmix.ColumnSorterMixin):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_BORDER)
+        splitter.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGING, self.on_sash_changing)
         main_sizer.Add(splitter, 1, wx.EXPAND)
 
         self.left_panel = wx.Panel(splitter)
@@ -118,6 +118,12 @@ class dhfs_extractor(wx.Frame, listmix.ColumnSorterMixin):
         
         self.video_list = wx.ListCtrl(self.right_panel, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.video_list.SetBackgroundColour(wx.WHITE)
+        
+        self.sort_images = wx.ImageList(16, 16)
+        self.sort_images.Add(art.GetBitmap(wx.ART_GO_DOWN, wx.ART_TOOLBAR, wx.Size(16, 16)))
+        self.sort_images.Add(art.GetBitmap(wx.ART_GO_UP, wx.ART_TOOLBAR, wx.Size(16, 16)))
+        self.video_list.SetImageList(self.sort_images, wx.IMAGE_LIST_SMALL)
+        
         self.video_list_headers = ["Partition", "ID", "Date", "Start Time", "End Time", "Camera", "Size"]
         for i in range(len(self.video_list_headers)):
             self.video_list.InsertColumn(i + 1, self.video_list_headers[i],
@@ -142,6 +148,19 @@ class dhfs_extractor(wx.Frame, listmix.ColumnSorterMixin):
         self.video_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.update_selection_info)
 
         self.Show(True)
+        
+    def on_sash_changing(self, event):
+        new_pos = event.GetSashPosition()
+        min_left = self.left_panel.GetMinWidth()
+        min_right = self.right_panel.GetMinWidth()
+        client_width = self.GetClientSize().width
+
+        if new_pos < min_left:
+            # Prevents sash from going too far left
+            event.SetSashPosition(min_left)
+        elif new_pos > client_width - min_right:
+            # Prevents sash from going too far right
+            event.SetSashPosition(client_width - min_right)
 
     def on_toolbar_event(self, e):
         ID_OPEN_IMAGE = 101
